@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Chess960 — Cross-Device Multiplayer</title>
+<title>Chess960 — Cross-Device Multiplayer + Engine</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
 <style>
 :root{
@@ -11,22 +11,26 @@
   --blue:#3aa0ff; --blue2:#6bb9ff; --grey-dark:#444; --green:#2ecc71; --purple:#9b59b6;
 }
 *{ box-sizing:border-box; }
-body{ margin:0; background:var(--bg); color:var(--text); font-family:Bahnschrift, "Segoe UI", Roboto, Arial, sans-serif; display:flex; flex-direction:column; min-height:100vh; }
+body{ margin:0; background:var(--bg); color:var(--text); font-family:Bahnschrift,"Segoe UI",Roboto,Arial,sans-serif; display:flex; flex-direction:column; min-height:100vh; }
 header{ padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; gap:12px; align-items:center; }
 header .brand{ font-weight:800; font-size:18px; }
 main{ flex:1; max-width:1200px; margin:0 auto; padding:20px; display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
 
 .left{ display:flex; align-items:flex-start; gap:12px; margin:0 auto; }
 .eval{ width:26px; height:var(--board); position:relative; background:var(--grey-dark); border-radius:10px; box-shadow: inset 0 0 26px rgba(0,0,0,.6); overflow:hidden; }
-.eval .whiteFill{ position:absolute; left:0; right:0; height:50%; background:#fff; transition: height .35s ease, top .35s ease, bottom .35s ease; }
-.eval .thumb{ position:absolute; left:-4px; right:-4px; height:2px; background: var(--blue); transition: top .35s ease, bottom .35s ease; }
+.eval .whiteFill{ position:absolute; left:0; right:0; height:50%; background:#fff; transition: height .35s ease, top .35s ease, bottom .35s ease; top:50%; }
+.eval .thumb{ position:absolute; left:-4px; right:-4px; height:2px; background: var(--blue); transition: top .35s ease, bottom .35s ease; top:50%; }
 .boardWrap{ background: var(--panel); padding:14px; border-radius:12px; box-shadow: 0 8px 28px rgba(0,0,0,.65); }
 #board{ width: var(--board); height: var(--board); }
 #game-status{ text-align:center; margin-top:8px; color:var(--muted); font-weight:700; }
+#flipBtn { grid-column: 1; }
+#undoBtn { grid-column: 2; }
+#multiplayerBtn { grid-column: 1 / span 3; }
+
 
 .controls{ margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .controls-top-row{ grid-column:1 / span 3; display:flex; gap:8px; justify-content:center; }
-button{ font-family: Bahnschrift, "Segoe UI", Roboto, Arial, sans-serif; font-weight:700; font-size:15px; padding:10px 14px; border-radius:10px; border:none; color:#fff; background: linear-gradient(180deg, var(--blue), var(--blue2)); cursor:pointer; box-shadow: 0 10px 20px rgba(58,160,255,.18); transition: transform .06s ease, filter .15s ease; width:100%; }
+button{ font-family:Bahnschrift,"Segoe UI",Roboto,Arial,sans-serif; font-weight:700; font-size:15px; padding:10px 14px; border-radius:10px; border:none; color:#fff; background: linear-gradient(180deg, var(--blue), var(--blue2)); cursor:pointer; box-shadow:0 10px 20px rgba(58,160,255,.18); transition: transform .06s ease, filter .15s ease; width:100%; }
 button:hover{ filter: brightness(1.07); }
 button:active{ transform: translateY(1px); }
 .btn-secondary{ background: transparent; color: var(--muted); border:1px solid rgba(255,255,255,.08); box-shadow:none; }
@@ -36,7 +40,7 @@ button:active{ transform: translateY(1px); }
 .engineBox{ margin-top:10px; background:rgba(10,12,15,.95); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; min-width:260px; display:none; }
 .engineBox.visible{ display:block; }
 .engineTitle{ font-weight:800; margin-bottom:6px; }
-#engineLog{ margin-top:6px; color:var(--muted); font-size:12px; white-space:pre-wrap; }
+#engineEval,#engineMove{ color:var(--muted); font-size:14px; margin-top:6px; white-space:pre-wrap; }
 
 .right{ flex:1; min-width:320px; display:flex; flex-direction:column; gap:12px; }
 .panel{ background:var(--panel); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(0,0,0,.6); }
@@ -48,31 +52,23 @@ button:active{ transform: translateY(1px); }
 .white-move { color: var(--text); }
 .black-move { color: var(--muted); }
 
-.multiplayer-panel {}
-textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba(255,255,255,.06); background: rgba(255,255,255,0.03); color:var(--text); padding:8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; resize:vertical; }
+textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba(255,255,255,.06); background: rgba(255,255,255,0.03); color:var(--text); padding:8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize:vertical; }
 .copyBtn{ margin-top:8px; width:120px; }
 .status-dot{ width:10px; height:10px; border-radius:50%; background:var(--muted); display:inline-block; margin-right:8px; vertical-align:middle; }
 .status-dot.connected{ background:var(--green); }
 
-.game-over-controls {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
-}
+.game-over-controls { display:none; justify-content: center; gap: 10px; margin-top: 10px; }
+.game-over-controls.visible { display:flex; }
+.game-over-controls button { flex: 1; }
 
-.game-over-controls button {
-  flex: 1;
-}
-
-@media (max-width:980px){ :root{ --board:440px; } .controls { grid-template-columns: repeat(2, 1fr); } .controls-top-row { grid-column: 1 / span 2; } }
-@media (max-width:560px){ :root{ --board:360px; } .controls { grid-template-columns: 1fr; } .controls-top-row { grid-column: 1; flex-direction: column; } .left { flex-direction: column; align-items:center; } .eval { width: var(--board); height: 26px; order: 1; } .eval .whiteFill { width: 50%; height: 100%; bottom: auto; top: 0; } .eval .thumb { width: 2px; height: 100%; left:50%; transform: translateX(-50%); bottom:auto; } }
+@media (max-width:1080px){ :root{ --board:420px; } .controls { grid-template-columns: repeat(2, 1fr); } .controls-top-row { grid-column: 1 / span 2; } }
+@media (max-width:480px){ :root{ --board:420px; } .controls { grid-template-columns: 1fr; } .controls-top-row { grid-column: 1; flex-direction: column; } .left { flex-direction: column; align-items:center; } .eval { width: var(--board); height: 26px; order: 1; } .eval .whiteFill { width: 50%; height: 100%; bottom: auto; top: 0; } .eval .thumb { width: 2px; height: 100%; left:50%; transform: translateX(-50%); bottom:auto; } }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">Chess960 — Cross-Device Multiplayer</div>
-  <div style="color:var(--muted); margin-left:8px;">WebRTC with Public STUN Servers</div>
+  <div class="brand">Chess960 — Cross-Device Multiplayer + Engine</div>
+  <div style="color:var(--muted); margin-left:8px;">Manual SDP WebRTC + Stockfish</div>
 </header>
 
 <main>
@@ -103,6 +99,12 @@ textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba
   </div>
 
   <aside class="right">
+    <div class="engineBox panel" id="engineBox">
+      <div class="engineTitle">Engine Analysis</div>
+      <div id="engineEval">Eval: --</div>
+      <div id="engineMove">Best Move: --</div>
+    </div>
+
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong>Move list</strong>
@@ -110,7 +112,7 @@ textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba
       <div class="moves"><ol id="moveList"></ol></div>
     </div>
 
-    <div class="panel multiplayer-panel" id="multiplayerPanel">
+    <div class="panel multiplayer-panel" id="multiplayerPanel" style="display:none;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <strong>Multiplayer (WebRTC)</strong>
         <div style="display:flex;align-items:center">
@@ -159,40 +161,35 @@ let fenHistory = [];
 let moveHistory = [];
 let isGameOver = false;
 
-/* Multiplayer (WebRTC) */
+/* ================ Multiplayer (STUN + Xirsys TURN hardcoded) ================ */
 let pc = null;
 let dc = null;
-let myColor = 'w'; // 'w' or 'b'
+let myColor = 'w';
 let isRtcConnected = false;
 
-// Public STUN servers for cross-device connectivity
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun3.l.google.com:19302' },
   { urls: 'stun:stun4.l.google.com:19302' },
-  // Additional STUN servers for better connectivity
   { urls: 'stun:stun.services.mozilla.com:3478' },
   { urls: 'stun:stun.stunprotocol.org:3478' },
+  { urls: 'stun:bn-turn2.xirsys.com' },
   {
-    urls: [ "stun:bn-turn2.xirsys.com" ]
-  }, 
-  {
-   username: "sZz53mb_N1HrDxkJKDUL4EXjSv96Y6aPbzZgnkzv2BjJC-_d0BKTpz-9hLCIqFV2AAAAAGiljFBqb2Vsam9iaW5zZQ==",
-   credential: "b637d73c-7da2-11f0-989d-0242ac140004",
-   urls: [
-       "turn:bn-turn2.xirsys.com:80?transport=udp",
-       "turn:bn-turn2.xirsys.com:3478?transport=udp",
-       "turn:bn-turn2.xirsys.com:80?transport=tcp",
-       "turn:bn-turn2.xirsys.com:3478?transport=tcp",
-       "turns:bn-turn2.xirsys.com:443?transport=tcp",
-       "turns:bn-turn2.xirsys.com:5349?transport=tcp"
-   ]
+    username: "sZz53mb_N1HrDxkJKDUL4EXjSv96Y6aPbzZgnkzv2BjJC-_d0BKTpz-9hLCIqFV2AAAAAGiljFBqb2Vsam9iaW5zZQ==",
+    credential: "b637d73c-7da2-11f0-989d-0242ac140004",
+    urls: [
+      "turn:bn-turn2.xirsys.com:80?transport=udp",
+      "turn:bn-turn2.xirsys.com:3478?transport=udp",
+      "turn:bn-turn2.xirsys.com:80?transport=tcp",
+      "turn:bn-turn2.xirsys.com:3478?transport=tcp",
+      "turns:bn-turn2.xirsys.com:443?transport=tcp",
+      "turns:bn-turn2.xirsys.com:5349?transport=tcp"
+    ]
   }
 ];
 
-/* UI helpers */
 function setRtcStatus(txt, connected=false){
   $('#connectionStatusText').text(txt);
   $('#connectionDot').toggleClass('connected', connected);
@@ -216,23 +213,23 @@ function generateChess960Position() {
   return `${blackBack}/pppppppp/8/8/8/8/PPPPPPPP/${whiteBack} w - - 0 1`;
 }
 
-/* ================ UI: status & move list ================ */
+/* ================ UI helpers ================ */
 function updateStatus(){
   const turn = game.turn()==='w'?'White':'Black';
   let txt = '';
   if (game.in_checkmate()){
     txt = `Game over, ${turn} is in checkmate!`;
     isGameOver = true;
-    try { $('#gameOverControls').addClass('visible'); } catch(e){}
+    $('#gameOverControls').addClass('visible');
   } else if (game.in_draw()){
     txt = 'Game over, drawn position';
     isGameOver = true;
-    try { $('#gameOverControls').addClass('visible'); } catch(e){}
+    $('#gameOverControls').addClass('visible');
   } else {
     txt = `${turn} to move`;
     if (game.in_check()) txt += `, ${turn} is in check`;
     isGameOver = false;
-    try { $('#gameOverControls').removeClass('visible'); } catch(e){}
+    $('#gameOverControls').removeClass('visible');
   }
   $('#game-status').text(txt);
 }
@@ -250,18 +247,141 @@ function refreshMoves(){
   ol.scrollTop = ol.scrollHeight;
 }
 
-function refreshUI(skipAutoAnalyze=false){
+function refreshUI(){
   updateStatus();
   refreshMoves();
 }
 
-/* ================ Board init ================ */
+/* ================= Engine (using your initEngine) ================= */
+let engine = null;
+let engineReady = false;
+let pendingFen = null;
+let lastAnalyzedFen = null;
+
+function initEngine() {
+  try {
+    const workerCode = `
+      importScripts('https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js');
+      self.postMessage('Stockfish loaded successfully');
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    engine = new Worker(URL.createObjectURL(blob));
+    
+    engine.onmessage = function(e) {
+      const line = e.data;
+
+      // console.debug('engine ->', line);
+      if (!line || typeof line !== 'string') return;
+
+      // early message from worker wrapper
+      if (line.includes('Stockfish')) {
+        console.log(line);
+        return;
+      }
+
+      // UCI ready
+      if (line.includes('readyok')) {
+        engineReady = true;
+        if (pendingFen) {
+          const f = pendingFen;
+          pendingFen = null;
+          runEngine(f);
+        }
+        return;
+      }
+
+      // parse info lines
+      if (line.startsWith('info ')) {
+        const parts = line.split(/\s+/);
+        const scoreIdx = parts.indexOf('score');
+        if (scoreIdx !== -1) {
+          const kind = parts[scoreIdx+1];
+          const raw = parts[scoreIdx+2];
+          if (kind === 'cp') {
+            const cp = parseInt(raw, 10);
+            $('#engineEval').text('Eval: ' + (cp>=0?'+':'') + (cp/100).toFixed(2));
+            setEvalByCp(cp);
+          } else if (kind === 'mate') {
+            const mate = parseInt(raw, 10);
+            $('#engineEval').text('Eval: mate ' + mate);
+            setEvalByCp(mate > 0 ? 1000 : -1000);
+          }
+        }
+      }
+
+      // bestmove
+      if (line.startsWith('bestmove')) {
+        const parts = line.split(/\s+/);
+        const bestuci = parts[1] || '';
+        const san = uciToSan(bestuci, lastAnalyzedFen);
+        $('#engineMove').text('Best Move: ' + (san || bestuci || '—'));
+        $('#engineBox').addClass('visible');
+      }
+    };
+
+    // send initial UCI handshake
+    engine.postMessage('uci');
+    engine.postMessage('isready');
+    engine.postMessage('setoption name Threads value 2');
+    engine.postMessage('setoption name Hash value 64');
+
+  } catch(err) {
+    console.error('Failed to initialize Stockfish:', err);
+    engineReady = false;
+  }
+}
+
+function runEngine(fen) {
+  // ensure engine started
+  if (!engine) initEngine();
+
+  // if engine not ready yet, queue fen and return
+  if (!engineReady) {
+    pendingFen = fen;
+    return;
+  }
+
+  lastAnalyzedFen = fen;
+  document.getElementById('engineBox').classList.add('visible');
+  engine.postMessage('ucinewgame');
+  engine.postMessage('position fen ' + fen);
+  engine.postMessage('go depth 15'); // moderate depth for interactivity
+}
+
+function uciToSan(uci, fen) {
+  if (!uci || !fen) return uci || '';
+  // uci might include promotion like e7e8q
+  const from = uci.substring(0,2);
+  const to = uci.substring(2,4);
+  const prom = uci.length>4 ? uci[4] : undefined;
+  const tmp = new Chess(fen);
+  try {
+    const m = tmp.move({ from, to, promotion: (prom || 'q') });
+    if (m) return m.san;
+  } catch(e){}
+  return uci;
+}
+
+function setEvalByCp(cp) {
+  // cp is centipawns (positive = white better)
+  const capped = Math.max(-800, Math.min(800, cp));
+  const pct = 50 + (capped / 16); // map +/-800 -> +/-50 -> 0..100
+  const percent = Math.max(0, Math.min(100, pct));
+  const whiteFill = document.getElementById('evalWhite');
+  const thumb = document.getElementById('evalThumb');
+  whiteFill.style.height = percent + '%';
+  whiteFill.style.top = (100 - percent) + '%';
+  thumb.style.top = (100 - percent) + '%';
+}
+
+/* ================ Board init (ghost fix + autorun) ================ */
 function initBoard(){
   board = Chessboard('board', {
     draggable: true,
     position: 'start',
     orientation: orientation,
     pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+
     onDragStart: function(source, piece){
       if (game.game_over()) return false;
       const pieceColor = piece.charAt(0); // 'w' or 'b'
@@ -271,18 +391,33 @@ function initBoard(){
         if ((myColor === 'w' && pieceColor !== 'w') || (myColor === 'b' && pieceColor !== 'b')) return false;
       }
     },
+
     onDrop: function(source, target){
       const mv = game.move({ from: source, to: target, promotion: 'q' });
       if (!mv) return 'snapback';
+
+      // record
       fenHistory.push(game.fen());
       moveHistory.push(mv.san);
-      board.position(game.fen());
       refreshUI();
+
+      // immediately update board so the piece "lands" (prevents ghost)
+      board.position(game.fen(), false);
+
+      // send over data channel if active
       if (dc && dc.readyState === 'open') {
         rtcSend({ type:'move', fen: game.fen(), san: mv.san, moveHistory: moveHistory.slice() });
       }
+
+      // autorun engine
+      runEngine(game.fen());
+      // valid move: no return (undefined)
     },
-    onSnapEnd: function(){ board.position(game.fen()); }
+
+    onSnapEnd: function(){
+      // safety sync
+      board.position(game.fen(), false);
+    }
   });
 }
 
@@ -294,12 +429,11 @@ function newChess960Game(){
   fenHistory = [fen];
   moveHistory = [];
   refreshUI();
+  runEngine(fen);
   if (dc && dc.readyState === 'open') rtcSend({ type:'newGame', fen });
 }
 
 /* ================ WebRTC manual SDP flow ================ */
-
-/* Update the Local SDP textarea from current localDescription */
 function updateLocalSdpTextarea(){
   try {
     if (pc && pc.localDescription) {
@@ -316,30 +450,15 @@ async function createPeer(initiator=false){
   if (pc) { try { pc.close(); } catch(_){} }
   pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-  // Always attach handlers BEFORE creating offer/answer so we capture ICE candidates
   pc.onicecandidate = (event) => {
-    // Update the Local SDP textarea every time we get a new candidate or when candidate==null (end)
     updateLocalSdpTextarea();
-    if (!event.candidate) {
-      // end of candidates
-      console.log('ICE gathering finished');
-      updateLocalSdpTextarea();
-    } else {
-      // got a candidate
-      console.log('New ICE candidate:', event.candidate.candidate);
-    }
   };
 
   pc.onicegatheringstatechange = () => {
-    // helpful debugging if you want
-    console.log('ICE gathering state:', pc.iceGatheringState);
-    if (pc.iceGatheringState === 'complete') {
-      updateLocalSdpTextarea();
-    }
+    if (pc.iceGatheringState === 'complete') updateLocalSdpTextarea();
   };
 
   pc.onconnectionstatechange = () => {
-    console.log('PC connectionState:', pc.connectionState);
     if (pc.connectionState === 'connected') {
       isRtcConnected = true;
       setRtcStatus('Connected', true);
@@ -356,18 +475,17 @@ async function createPeer(initiator=false){
   };
 
   if (initiator) {
-    // create datachannel (host)
     dc = pc.createDataChannel('chess960');
     wireDataChannel(dc);
 
-    // Create offer AFTER event listeners are attached
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     setRtcStatus('Offer created — gathering ICE', false);
-    // local SDP will be updated by onicecandidate as gathering proceeds
   } else {
-    // joiner: listen for incoming datachannel
-    pc.ondatachannel = (ev) => { dc = ev.channel; wireDataChannel(dc); setRtcStatus('DataChannel created (joiner)', false); };
+    pc.ondatachannel = (ev) => {
+      dc = ev.channel; wireDataChannel(dc);
+      setRtcStatus('DataChannel created (joiner)', false);
+    };
     setRtcStatus('Ready to accept offer — you are Black', false);
   }
 }
@@ -375,15 +493,12 @@ async function createPeer(initiator=false){
 function wireDataChannel(channel){
   channel.onopen = () => {
     setRtcStatus('Connected', true);
-    // small delay to allow joiner to request sync
     setTimeout(()=> rtcSend({ type:'syncRequest' }), 300);
   };
   channel.onclose = () => { setRtcStatus('Not connected', false); };
   channel.onmessage = (ev) => {
-    try {
-      const msg = JSON.parse(ev.data);
-      handleRtcMessage(msg);
-    } catch(e){ console.warn('Bad RTC msg', e); }
+    try { handleRtcMessage(JSON.parse(ev.data)); }
+    catch(e){ console.warn('Bad RTC msg', e); }
   };
 }
 
@@ -400,20 +515,16 @@ async function applyRemoteSdp(){
   try { desc = JSON.parse(raw); } catch(e){ alert('Invalid JSON'); return; }
 
   try {
-    // If the remote is an 'offer', setRemoteDescription and create + set an answer
     if (desc.type === 'offer') {
       await pc.setRemoteDescription(desc);
       setRtcStatus('Remote offer applied — creating answer', false);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      // localDescription (answer) will be populated as ICE candidates gather
       setTimeout(()=> { try { $('#localSdp').val(JSON.stringify(pc.localDescription)); } catch(e){} }, 400);
     } else if (desc.type === 'answer') {
-      // Host pastes remote answer: simply apply it
       await pc.setRemoteDescription(desc);
       setRtcStatus('Remote answer applied', false);
     } else {
-      // fallback: just set remote description
       await pc.setRemoteDescription(desc);
       setRtcStatus('Remote SDP applied', false);
     }
@@ -426,37 +537,44 @@ async function applyRemoteSdp(){
 /* Handle incoming RTC messages */
 function handleRtcMessage(msg){
   if (!msg || typeof msg.type !== 'string') return;
+
   if (msg.type === 'syncRequest') {
     rtcSend({ type:'syncState', fen: game.fen(), moveHistory: moveHistory.slice() });
     return;
   }
+
   if (msg.type === 'syncState' && msg.fen) {
     try {
       game.load(msg.fen);
-      board.position(msg.fen);
+      board.position(msg.fen(), false);
       moveHistory = Array.isArray(msg.moveHistory) ? msg.moveHistory.slice() : [];
       fenHistory = [msg.fen];
-      refreshUI(true);
+      refreshUI();
+      runEngine(msg.fen());
     } catch(e){ console.warn('syncState apply error', e); }
     return;
   }
+
   if (msg.type === 'newGame' && msg.fen) {
     try {
       game.load(msg.fen);
-      board.position(msg.fen);
+      board.position(msg.fen(), false);
       moveHistory = [];
       fenHistory = [msg.fen];
-      refreshUI(true);
+      refreshUI();
+      runEngine(msg.fen());
     } catch(e){}
     return;
   }
+
   if (msg.type === 'move' && msg.fen && msg.san) {
     try {
       game.load(msg.fen);
-      board.position(msg.fen);
+      board.position(msg.fen(), false);
       moveHistory = Array.isArray(msg.moveHistory) ? msg.moveHistory.slice() : (moveHistory.concat(msg.san));
       fenHistory.push(msg.fen);
-      refreshUI(true);
+      refreshUI();
+      runEngine(msg.fen());
     } catch(e){ console.warn('apply move fail', e); }
   }
 }
@@ -464,6 +582,7 @@ function handleRtcMessage(msg){
 /* ================ Wiring & events ================ */
 $(document).ready(function(){
   initBoard();
+  initEngine();
   newChess960Game();
 });
 
@@ -471,7 +590,12 @@ $('#newGameBtn').on('click', newChess960Game);
 
 $('#standardBtn').on('click', function(){
   const fenStd = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-  game.load(fenStd); board.position('start'); fenHistory=[fenStd]; moveHistory=[]; refreshUI();
+  game.load(fenStd);
+  board.position('start');
+  fenHistory=[fenStd];
+  moveHistory=[];
+  refreshUI();
+  runEngine(fenStd);
 });
 
 $('#flipBtn').on('click', function(){
@@ -484,13 +608,14 @@ $('#undoBtn').on('click', function(){
   const m = game.undo();
   if (!m) return;
   moveHistory.pop();
-  board.position(game.fen());
+  board.position(game.fen(), false);
   refreshUI();
+  runEngine(game.fen());
 });
 
 $('#newGameAfterBtn').on('click', newChess960Game);
 
-$('#multiplayerBtn').on('click', function(){ $('#multiplayerPanel').toggleClass('visible'); });
+$('#multiplayerBtn').on('click', function(){ $('#multiplayerPanel').toggle(); });
 
 $('#hostBtn').on('click', async function(){
   await createPeer(true);
@@ -520,7 +645,6 @@ $('#copyLocalSdpBtn').on('click', function(){
 
 /* cleanup */
 window.addEventListener('beforeunload', ()=>{ try{ dc && dc.close && dc.close(); pc && pc.close && pc.close(); }catch(e){} });
-
 </script>
 </body>
 </html>

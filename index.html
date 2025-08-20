@@ -18,7 +18,6 @@ header{ padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.06); displa
 header .brand{ font-weight:800; font-size:18px; }
 main{ flex:1; max-width:1200px; margin:0 auto; padding:20px; display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; justify-content:center; }
 
-/* Left cluster: eval bar + board */
 .left{ display:flex; align-items:flex-start; gap:12px; margin:0 auto; }
 .eval{ width:26px; height:var(--board); position:relative; background:var(--grey-dark); border-radius:10px; box-shadow: inset 0 0 26px rgba(0,0,0,.6); overflow:hidden; }
 .eval .whiteFill{ position:absolute; left:0; right:0; height:50%; background:#fff; transition: height .35s ease, top .35s ease, bottom .35s ease; }
@@ -27,7 +26,6 @@ main{ flex:1; max-width:1200px; margin:0 auto; padding:20px; display:flex; gap:1
 #board{ width: var(--board); height: var(--board); }
 #game-status{ text-align:center; margin-top:8px; color:var(--muted); font-weight:700; }
 
-/* Controls */
 .controls{ margin-top:12px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .controls-top-row{ grid-column:1 / span 3; display:flex; gap:8px; justify-content:center; }
 button{ font-family: Bahnschrift, "Segoe UI", Roboto, Arial, sans-serif; font-weight:700; font-size:15px; padding:10px 14px; border-radius:10px; border:none; color:#fff; background: linear-gradient(180deg, var(--blue), var(--blue2)); cursor:pointer; box-shadow: 0 10px 20px rgba(58,160,255,.18); transition: transform .06s ease, filter .15s ease; width:100%; }
@@ -37,13 +35,11 @@ button:active{ transform: translateY(1px); }
 .btn-success { background: linear-gradient(180deg, var(--green), #27ae60); box-shadow: 0 10px 20px rgba(46, 204, 113, 0.18); }
 .btn-purple { background: linear-gradient(180deg, var(--purple), #8e44ad); box-shadow: 0 10px 20px rgba(155, 89, 182, 0.18); }
 
-/* Engine panel */
 .engineBox{ margin-top:10px; background:rgba(10,12,15,.95); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; min-width:260px; display:none; }
 .engineBox.visible{ display:block; }
 .engineTitle{ font-weight:800; margin-bottom:6px; }
 #engineLog{ margin-top:6px; color:var(--muted); font-size:12px; white-space:pre-wrap; }
 
-/* Right column */
 .right{ flex:1; min-width:320px; display:flex; flex-direction:column; gap:12px; }
 .panel{ background:var(--panel); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(0,0,0,.6); }
 .moves{ max-height: calc(var(--board) * .6); overflow:auto; padding:8px; }
@@ -54,7 +50,6 @@ button:active{ transform: translateY(1px); }
 .white-move { color: var(--text); }
 .black-move { color: var(--muted); }
 
-/* Multiplayer panel */
 .multiplayer-panel {}
 textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba(255,255,255,.06); background: rgba(255,255,255,0.03); color:var(--text); padding:8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; resize:vertical; }
 .copyBtn{ margin-top:8px; width:120px; }
@@ -64,15 +59,14 @@ textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba
 .game-over-controls {
   display: flex;
   justify-content: center;
-  gap: 10px;   /* space between buttons */
+  gap: 10px;
   margin-top: 10px;
 }
 
 .game-over-controls button {
-  flex: 1;     /* make them equal width */
+  flex: 1;
 }
 
-/* Responsive */
 @media (max-width:980px){ :root{ --board:440px; } .controls { grid-template-columns: repeat(2, 1fr); } .controls-top-row { grid-column: 1 / span 2; } }
 @media (max-width:560px){ :root{ --board:360px; } .controls { grid-template-columns: 1fr; } .controls-top-row { grid-column: 1; flex-direction: column; } .left { flex-direction: column; align-items:center; } .eval { width: var(--board); height: 26px; order: 1; } .eval .whiteFill { width: 50%; height: 100%; bottom: auto; top: 0; } .eval .thumb { width: 2px; height: 100%; left:50%; transform: translateX(-50%); bottom:auto; } }
 </style>
@@ -171,7 +165,27 @@ textarea{ width:100%; min-height:110px; border-radius:8px; border:1px solid rgba
 /* ================= Settings ================= */
 const STOCKFISH_CDN_VER = 'https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js';
 const ENGINE_INIT_TIMEOUT_MS = 7000;
-const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302'] }];
+
+/* ICE servers: STUN + TURN (TURN is metered openrelay). Replace with your own TURN for production. */
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
+  }
+];
 
 /* ================= Game state ================= */
 const game = new Chess();
@@ -191,7 +205,7 @@ let isAnalyzing = false;
 /* Multiplayer (WebRTC) */
 let pc = null;
 let dc = null;
-let myColor = 'w'; // 'w' or 'b' — assigned when createPeer called
+let myColor = 'w'; // 'w' or 'b'
 let isRtcConnected = false;
 
 /* UI helpers */
@@ -274,15 +288,10 @@ function initBoard(){
     onDragStart: function(source, piece){
       if (game.game_over()) return false;
       const pieceColor = piece.charAt(0); // 'w' or 'b'
-      // If RTC connected enforce you can only move your color and only on your turn
       const rtcActive = !!(dc && dc.readyState === 'open');
       if (rtcActive) {
-        // must be our turn
         if ((game.turn() === 'w' && myColor !== 'w') || (game.turn() === 'b' && myColor !== 'b')) return false;
-        // must move our own pieces
         if ((myColor === 'w' && pieceColor !== 'w') || (myColor === 'b' && pieceColor !== 'b')) return false;
-      } else {
-        // local play: allow moves normally
       }
     },
     onDrop: function(source, target){
@@ -292,7 +301,6 @@ function initBoard(){
       moveHistory.push(mv.san);
       board.position(game.fen());
       refreshUI();
-      // send to peer if connected
       if (dc && dc.readyState === 'open') {
         rtcSend({ type:'move', fen: game.fen(), san: mv.san, moveHistory: moveHistory.slice() });
       }
@@ -313,7 +321,6 @@ function newChess960Game(){
   $('#engineBox').removeClass('visible');
   $('#engineMove').text('Best Move: —');
   $('#engineEval').text('Eval: —');
-  // notify peer
   if (dc && dc.readyState === 'open') rtcSend({ type:'newGame', fen });
 }
 
@@ -359,13 +366,8 @@ function initEngine() {
     engine.onmessage = function(e) {
       const data = e.data;
       const line = (typeof data === 'string') ? data : (data && data.data) ? data.data : '';
-      // ignore trivial loads notification if present
       if (line === 'stockfish-cdn-loaded') { setEngineLog('Stockfish script loaded into worker'); return; }
-
-      // some builds send JSON or objects; coerce to string
       if (!line) return;
-
-      // handle readiness
       if (/readyok/.test(line)) {
         engineReady = true;
         clearTimeout(initTimeout);
@@ -373,8 +375,6 @@ function initEngine() {
         $('#analyzeBtn').prop('disabled', false).text('Analysis: ON');
         return;
       }
-
-      // parse info / bestmove
       try {
         if (typeof line === 'string') {
           if (line.indexOf('info ') === 0) {
@@ -401,7 +401,6 @@ function initEngine() {
       } catch(e){ console.warn('engine parse error', e); }
     };
 
-    // send UCI init
     try {
       engine.postMessage('uci');
       engine.postMessage('isready');
@@ -469,8 +468,17 @@ function analyzeFullGame(){
 }
 
 /* ================ WebRTC manual SDP flow ================ */
+
+/* Update the Local SDP textarea from current localDescription */
+function updateLocalSdpTextarea(){
+  try {
+    if (pc && pc.localDescription) {
+      $('#localSdp').val(JSON.stringify(pc.localDescription));
+    }
+  } catch(e){ console.warn('updateLocalSdpTextarea', e); }
+}
+
 async function createPeer(initiator=false){
-  // set role immediately and flip orientation
   myColor = initiator ? 'w' : 'b';
   orientation = (myColor === 'w') ? 'white' : 'black';
   if (board && typeof board.orientation === 'function') board.orientation(orientation);
@@ -478,38 +486,66 @@ async function createPeer(initiator=false){
   if (pc) { try { pc.close(); } catch(_){} }
   pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
+  // Always attach handlers BEFORE creating offer/answer so we capture ICE candidates
+  pc.onicecandidate = (event) => {
+    // Update the Local SDP textarea every time we get a new candidate or when candidate==null (end)
+    updateLocalSdpTextarea();
+    if (!event.candidate) {
+      // end of candidates
+      console.log('ICE gathering finished');
+      updateLocalSdpTextarea();
+    } else {
+      // got a candidate
+      console.log('New ICE candidate:', event.candidate.candidate);
+    }
+  };
+
   pc.onicegatheringstatechange = () => {
-    // once gathering is complete, localDescription contains ICE
+    // helpful debugging if you want
+    console.log('ICE gathering state:', pc.iceGatheringState);
     if (pc.iceGatheringState === 'complete') {
-      $('#localSdp').val(JSON.stringify(pc.localDescription));
+      updateLocalSdpTextarea();
     }
   };
 
   pc.onconnectionstatechange = () => {
+    console.log('PC connectionState:', pc.connectionState);
     if (pc.connectionState === 'connected') {
       isRtcConnected = true;
       setRtcStatus('Connected', true);
     } else if (['disconnected','failed','closed'].includes(pc.connectionState)) {
       isRtcConnected = false;
       setRtcStatus('Not connected', false);
+    } else {
+      setRtcStatus(pc.connectionState, false);
     }
   };
 
+  pc.oniceconnectionstatechange = () => {
+    console.log('ICE connection state:', pc.iceConnectionState);
+  };
+
   if (initiator) {
+    // create datachannel (host)
     dc = pc.createDataChannel('chess960');
     wireDataChannel(dc);
+
+    // Create offer AFTER event listeners are attached
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    setRtcStatus('Offer created — wait for local SDP to include ICE then share it');
+    setRtcStatus('Offer created — gathering ICE', false);
+    // local SDP will be updated by onicecandidate as gathering proceeds
   } else {
-    pc.ondatachannel = (ev) => { dc = ev.channel; wireDataChannel(dc); setRtcStatus('DataChannel created (joiner)'); };
+    // joiner: listen for incoming datachannel
+    pc.ondatachannel = (ev) => { dc = ev.channel; wireDataChannel(dc); setRtcStatus('DataChannel created (joiner)', false); };
+    setRtcStatus('Ready to accept offer — you are Black', false);
   }
 }
 
 function wireDataChannel(channel){
   channel.onopen = () => {
     setRtcStatus('Connected', true);
-    // request a sync of the current state (joiner will get it)
+    // small delay to allow joiner to request sync
     setTimeout(()=> rtcSend({ type:'syncRequest' }), 300);
   };
   channel.onclose = () => { setRtcStatus('Not connected', false); };
@@ -534,18 +570,26 @@ async function applyRemoteSdp(){
   try { desc = JSON.parse(raw); } catch(e){ alert('Invalid JSON'); return; }
 
   try {
-    await pc.setRemoteDescription(desc);
-    setRtcStatus('Remote SDP applied');
-    // If we just applied an offer (we are joiner), create and set answer
+    // If the remote is an 'offer', setRemoteDescription and create + set an answer
     if (desc.type === 'offer') {
+      await pc.setRemoteDescription(desc);
+      setRtcStatus('Remote offer applied — creating answer', false);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      // localDescription will be filled when iceGathering completes
+      // localDescription (answer) will be populated as ICE candidates gather
       setTimeout(()=> { try { $('#localSdp').val(JSON.stringify(pc.localDescription)); } catch(e){} }, 400);
+    } else if (desc.type === 'answer') {
+      // Host pastes remote answer: simply apply it
+      await pc.setRemoteDescription(desc);
+      setRtcStatus('Remote answer applied', false);
+    } else {
+      // fallback: just set remote description
+      await pc.setRemoteDescription(desc);
+      setRtcStatus('Remote SDP applied', false);
     }
   } catch(e){
     console.error('applyRemoteSdp', e);
-    alert('Failed to apply remote SDP — see console');
+    alert('Failed to apply remote SDP — check console for details');
   }
 }
 
@@ -629,13 +673,13 @@ $('#multiplayerBtn').on('click', function(){ $('#multiplayerPanel').toggleClass(
 
 $('#hostBtn').on('click', async function(){
   await createPeer(true);
-  $('#localSdp').val('Gathering ICE… waiting for ICE candidates to complete. When it finishes, copy this Local SDP and share it with joiner.');
+  $('#localSdp').val('Gathering ICE… waiting for ICE candidates to complete. Copy the Local SDP when ICE gathering finishes (or copy intermediate states if you prefer).');
   setRtcStatus('Offer created — waiting for ICE', false);
 });
 
 $('#joinBtn').on('click', async function(){
   await createPeer(false);
-  $('#localSdp').val('Paste host offer into Remote SDP box then click Apply Remote SDP. Your answer will appear here.');
+  $('#localSdp').val('Paste host offer into Remote SDP box then click Apply Remote SDP. Your answer will appear here after ICE gathering.');
   setRtcStatus('Ready to accept offer — you are Black', false);
 });
 

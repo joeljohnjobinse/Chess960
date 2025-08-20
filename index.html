@@ -174,7 +174,22 @@ const ICE_SERVERS = [
   { urls: 'stun:stun4.l.google.com:19302' },
   // Additional STUN servers for better connectivity
   { urls: 'stun:stun.services.mozilla.com:3478' },
-  { urls: 'stun:stun.stunprotocol.org:3478' }
+  { urls: 'stun:stun.stunprotocol.org:3478' },
+  {
+    urls: [ "stun:bn-turn2.xirsys.com" ]
+  }, 
+  {
+   username: "sZz53mb_N1HrDxkJKDUL4EXjSv96Y6aPbzZgnkzv2BjJC-_d0BKTpz-9hLCIqFV2AAAAAGiljFBqb2Vsam9iaW5zZQ==",
+   credential: "b637d73c-7da2-11f0-989d-0242ac140004",
+   urls: [
+       "turn:bn-turn2.xirsys.com:80?transport=udp",
+       "turn:bn-turn2.xirsys.com:3478?transport=udp",
+       "turn:bn-turn2.xirsys.com:80?transport=tcp",
+       "turn:bn-turn2.xirsys.com:3478?transport=tcp",
+       "turns:bn-turn2.xirsys.com:443?transport=tcp",
+       "turns:bn-turn2.xirsys.com:5349?transport=tcp"
+   ]
+  }
 ];
 
 /* UI helpers */
